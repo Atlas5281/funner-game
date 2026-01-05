@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>FUNNER Flip Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background-color: #fff; height: 100vh; width: 100vw;
+      overflow: hidden; display: flex; justify-content: center; align-items: center;
+    }
+    .screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: none; flex-direction: column; align-items: center;
+      background-size: cover; background-position: center;
+    }
+    /* 啟動畫面 */
+    #loginScreen { 
+      display: flex; z-index: 1000; 
+      background-image: url("./assets/ui/login_bg.png"); 
+      cursor: pointer; position: relative;
+    }
+    .tap-hint {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: 20%; color: #555; font-size: 24px; font-weight: bold;
+      animation: blink 2s infinite; text-shadow: 0 0 10px rgba(255,255,255,0.8);
+    }
+    /* 主選單 - 移除所有可見按鈕，僅保留透明觸發區域 */
+    #mainMenu { background-image: url("./assets/ui/main_bg.png"); justify-content: center; }
+    .play-trigger {
+      width: 260px; height: 100px; margin-top: 150px;
+      background: rgba(0,0,0,0); /* 完全透明，對準你背景圖上的 PLAY */
+      cursor: pointer;
+    }
+    /* 遊戲畫面導覽列 - 改用文字避免圖標破碎 */
+    #gameArea { background-color: #f7f7f7; }
+    .nav-bar {
+      width: 100%; height: 60px; display: flex; 
+      justify-content: space-between; align-items: center;
+      padding: 0 20px; background: #fff; border-bottom: 2px solid #eee;
+    }
+    .text-btn { font-size: 16px; color: #666; cursor: pointer; padding: 5px 10px; border: 1px solid #ddd; border-radius: 5px; }
+    
+    /* 卡片陣列 */
+    .card-grid { display: grid; gap: 10px; padding: 20px; margin: auto; justify-content: center; }
+    .card { position: relative; cursor: pointer; perspective: 1000px; }
+    .card-inner { width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
+    .card.flipped .card-inner { transform: rotateY(180deg); }
+    .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 10px; border: 1px solid #ddd; }
+    .card-back { background: url("./assets/ui/card_back.jpg") center/cover; }
+    .card-front { transform: rotateY(180deg); background: #fff; overflow: hidden; }
+    .card-front img { width: 100%; height: 100%; object-fit: cover; }
+    
+    /* 第二關中心格 */
+    .center-card { cursor: default !important; border: none !important; visibility: visible; }
+
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: none;
+      justify-content: center; align-items: center; z-index: 5000;
+    }
+    .modal { background: #fff; padding: 40px; border-radius: 25px; text-align: center; width: 80%; }
+    .modal button { margin-top: 25px; padding: 12px 35px; background: #4CAF50; color: white; border: none; border-radius: 12px; cursor: pointer; }
+    @keyframes blink { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="screen" onclick="gotoMenu()"><div class="tap-hint">TAP TO START</div></div>
+  <div id="mainMenu" class="screen"><div class="play-trigger" onclick="gotoGame()"></div></div>
+  <div id="gameArea" class="screen">
+    <div class="nav-bar">
+      <div class="text-btn" onclick="backToMenu()">返回</div>
+      <div style="font-weight:bold; color:#333;">第 <span id="lvText">1</span> 關</div>
+      <div class="text-btn" onclick="initLevel()">重置</div>
+    </div>
+    <div id="cardGrid" class="card-grid"></div>
+    <div style="padding-bottom: 40px; color:#999; font-size: 14px;">步數: <span id="stText">0</span></div>
+  </div>
+  <div id="winOverlay" class="overlay">
+    <div class="modal"><h2>過關了！</h2><p style="margin: 15px 0;">步數：<span id="finalSt">0</span></p><button onclick="nextLevel()">下一關</button></div>
+  </div>
+  <audio id="bgm" src="./assets/audio/theme.mp3" loop></audio>
+  <script>
+    let lv = 1, st = 0, matched = 0, flipped = [], lock = false;
+    const fishImgs = Array.from({length: 18}, (_, i) => `./assets/cards/${i+1}.jpg`);
+    function gotoMenu() { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('mainMenu').style.display = 'flex'; document.getElementById('bgm').play().catch(()=>{}); }
+    function backToMenu() { if(confirm("返回主選單？")) { document.getElementById('gameArea').style.display = 'none'; document.getElementById('mainMenu').style.display = 'flex'; } }
+    function gotoGame() { document.getElementById('mainMenu').style.display = 'none'; document.getElementById('gameArea').style.display = 'flex'; lv = 1; initLevel(); }
+    function initLevel() {
+      const grid = document.getElementById('cardGrid'); grid.innerHTML = ''; st = 0; matched = 0; flipped = []; lock = false;
+      document.getElementById('stText').textContent = st; document.getElementById('lvText').textContent = lv;
+      let size = (lv === 1) ? 4 : (lv === 2 ? 5 : 6);
+      let totalCells = size * size, pairsNeeded = (lv === 2) ? (totalCells - 1) / 2 : totalCells / 2;
+      let deck = [...fishImgs].sort(() => 0.5 - Math.random()).slice(0, pairsNeeded);
+      deck = [...deck, ...deck].sort(() => 0.5 - Math.random());
+      grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      for (let i = 0; i < totalCells; i++) {
+        const card = document.createElement('div');
+        let cardSize = (size === 4) ? 85 : (size === 5 ? 70 : 58);
+        card.style.width = cardSize + 'px'; card.style.height = cardSize + 'px'; card.className = 'card';
+        if (lv === 2 && i === 12) {
+          card.className = 'card center-card';
+          card.innerHTML = `<div class="card-face card-back" style="border:none; background-color:transparent;"></div>`;
+          grid.appendChild(card); continue;
+        }
+        const src = deck.pop();
+        card.innerHTML = `<div class="card-inner"><div class="card-face card-back"></div><div class="card-face card-front"><img src="${src}"></div></div>`;
+        card.onclick = () => {
+          if (lock || card.classList.contains('flipped')) return;
+          card.classList.add('flipped'); flipped.push({ card, src });
+          if (flipped.length === 2) {
+            st++; document.getElementById('stText').textContent = st; lock = true;
+            if (flipped[0].src === flipped[1].src) { matched++; flipped = []; lock = false; if (matched === pairsNeeded) setTimeout(showWin, 500); }
+            else { setTimeout(() => { flipped.forEach(f => f.card.classList.remove('flipped')); flipped = []; lock = false; }, 800); }
+          }
+        };
+        grid.appendChild(card);
+      }
+    }
+    function showWin() { document.getElementById('finalSt').textContent = st; document.getElementById('winOverlay').style.display = 'flex'; }
+    function nextLevel() { document.getElementById('winOverlay').style.display = 'none'; if (lv < 3) { lv++; initLevel(); } else { backToMenu(); } }
+  </script>
+</body>
+</html>

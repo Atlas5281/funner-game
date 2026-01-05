@@ -6,110 +6,97 @@
   <title>FUNNER Flip Game</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    /* 強制讓 body 和 html 佔滿全螢幕，不留白 */
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000; /* 背景設為黑色，防止閃爍 */
-    }
-
-    body {
-      font-family: "Microsoft JhengHei", sans-serif;
-      display: flex; justify-content: center; align-items: center;
-    }
+    html, body { width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+    body { font-family: "Microsoft JhengHei", sans-serif; display: flex; justify-content: center; align-items: center; }
 
     .screen {
-      position: absolute; top: 0; left: 0; 
-      width: 100vw; height: 100vh;
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
       display: none; flex-direction: column; align-items: center;
-      background-size: cover; background-position: center;
-      background-repeat: no-repeat;
+      background-size: cover; background-position: center; background-repeat: no-repeat;
     }
 
     /* 啟動畫面 */
     #loginScreen { display: flex; z-index: 1000; background-image: url("./assets/ui/login_bg.png"); cursor: pointer; }
     .tap-hint {
       position: absolute; left: 50%; transform: translateX(-50%);
-      bottom: 15%; color: #fff; font-size: 1.8rem; font-weight: bold;
+      bottom: 20%; color: #fff; font-size: 1.5rem; font-weight: bold;
       animation: blink 2s infinite; text-shadow: 2px 2px 4px #000;
-      white-space: nowrap;
     }
 
     /* 主選單 */
     #mainMenu { background-image: url("./assets/ui/main_bg.png"); }
-    .play-trigger {
-      position: absolute;
-      top: 55%; /* 根據你的背景圖按鈕高度調整 */
-      width: 60%; height: 12%; 
-      background: rgba(0,0,0,0); cursor: pointer;
-    }
+    .play-trigger { position: absolute; top: 55%; width: 60%; height: 10%; background: rgba(0,0,0,0); cursor: pointer; }
 
     /* 遊戲畫面 */
-    #gameArea { background-color: #f0f0f0; }
-    
+    #gameArea { background-color: #f4f4f4; }
     .nav-bar {
-      width: 100%; height: 70px; display: flex; 
-      justify-content: space-between; align-items: center;
-      padding: 10px 15px; background: rgba(255,255,255,0.9);
-      z-index: 10;
+      width: 100%; height: 65px; display: flex; justify-content: space-between; align-items: center;
+      padding: 0 15px; background: #fff; border-bottom: 1px solid #ddd;
     }
+    .text-btn { font-size: 15px; font-weight: bold; color: #444; cursor: pointer; padding: 8px 16px; background: #f0f0f0; border-radius: 8px; border: none; }
 
-    .text-btn { font-size: 16px; font-weight: bold; color: #333; cursor: pointer; padding: 8px 15px; background: #eee; border-radius: 8px; border: none; }
-
-    /* 核心修改：強制卡片區域撐開 */
-    #cardGrid { 
-      display: grid; 
-      gap: 1.5vw; 
-      padding: 10px;
-      margin: auto; 
-      width: 95vw; /* 強制佔用手機寬度的 95% */
-      max-width: 500px; /* 電腦版最大寬度 */
-      justify-content: center;
-      align-content: center;
-      flex-grow: 1; /* 讓它填滿導覽列下方的空間 */
+    /* 修正後的居中卡片陣列 */
+    #cardGrid {
+      display: grid;
+      gap: 8px; /* 固定間距更精緻 */
+      padding: 15px;
+      width: 100vw;
+      max-width: 450px;
+      margin: auto; /* 關鍵置中 */
+      justify-content: center; /* 水平居中 */
+      align-content: center; /* 垂直居中 */
+      flex-grow: 1;
     }
 
     .card { position: relative; cursor: pointer; aspect-ratio: 1 / 1; width: 100%; }
     .card-inner { width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
     .card.flipped .card-inner { transform: rotateY(180deg); }
-    .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 10px; border: 2px solid #ddd; }
+    .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .card-back { background: url("./assets/ui/card_back.jpg") center/cover; }
     .card-front { transform: rotateY(180deg); background: #fff; overflow: hidden; }
     .card-front img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .center-card { cursor: default !important; border: none !important; opacity: 0; }
 
-    /* 彈窗 */
-    .overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85); display: none;
-      justify-content: center; align-items: center; z-index: 5000;
+    /* 第二關中心格提示效果 */
+    .center-card { 
+      cursor: default !important; 
+      border: 2px dashed #bbb !important; 
+      background: rgba(200, 200, 200, 0.2);
+      display: flex; justify-content: center; align-items: center;
+      border-radius: 12px;
+      animation: pulse 2s infinite; /* 增加呼吸燈效果 */
     }
-    .modal { background: #fff; padding: 30px; border-radius: 20px; text-align: center; width: 80%; }
-    .modal h2 { margin-bottom: 10px; color: #333; }
-    .modal button { margin-top: 20px; padding: 12px 40px; background: #28a745; color: white; border: none; border-radius: 10px; font-size: 1.2rem; }
+    .center-card::after {
+      content: "🔒"; /* 顯示鎖定圖示 */
+      font-size: 1.5rem;
+      opacity: 0.5;
+    }
+
+    /* 彈窗樣式 */
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 5000; }
+    .modal { background: #fff; padding: 35px; border-radius: 20px; text-align: center; width: 80%; }
+    .modal button { margin-top: 20px; padding: 12px 35px; background: #007AFF; color: white; border: none; border-radius: 10px; font-size: 1.1rem; }
 
     @keyframes blink { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+    @keyframes pulse { 0% { background: rgba(200,200,200,0.1); } 50% { background: rgba(255,255,255,0.6); } 100% { background: rgba(200,200,200,0.1); } }
   </style>
 </head>
 <body>
+
   <div id="loginScreen" class="screen" onclick="gotoMenu()"><div class="tap-hint">TAP TO START</div></div>
   <div id="mainMenu" class="screen"><div class="play-trigger" onclick="gotoGame()"></div></div>
-  
+
   <div id="gameArea" class="screen">
     <div class="nav-bar">
       <button class="text-btn" onclick="backToMenu()">返回</button>
-      <div style="font-weight:bold; font-size:1.2rem;">第 <span id="lvText">1</span> 關</div>
+      <div style="font-weight:bold; font-size:1.1rem;">LEVEL <span id="lvText">1</span></div>
       <button class="text-btn" onclick="initLevel()">重置</button>
     </div>
     <div id="cardGrid"></div>
-    <div style="padding: 15px; font-weight: bold; color: #666;">STEPS: <span id="stText">0</span></div>
+    <div style="padding-bottom: 25px; color: #888; font-weight: bold;">STEPS: <span id="stText">0</span></div>
   </div>
 
   <div id="winOverlay" class="overlay">
-    <div class="modal"><h2 id="winMsg">CLEAR!</h2><p>步數：<span id="finalSt">0</span></p><button onclick="nextLevel()">NEXT</button></div>
+    <div class="modal"><h2 id="winMsg">CLEAR!</h2><p style="margin:10px 0;">步數：<span id="finalSt">0</span></p><button onclick="nextLevel()">NEXT LEVEL</button></div>
   </div>
 
   <audio id="bgm" src="./assets/audio/theme.mp3" loop></audio>
@@ -121,10 +108,7 @@
     function gotoMenu() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainMenu').style.display = 'flex';
-      const bgm = document.getElementById('bgm');
-      bgm.play().catch(() => {
-        console.log("Waiting for user interaction to play music");
-      });
+      document.getElementById('bgm').play().catch(() => {});
     }
 
     function backToMenu() {
@@ -158,19 +142,18 @@
 
       for (let i = 0; i < totalCells; i++) {
         const card = document.createElement('div');
-        card.className = 'card';
-
         if (lv === 2 && i === 12) {
           card.className = 'card center-card';
           grid.appendChild(card);
           continue;
         }
 
+        card.className = 'card';
         const src = deck.pop();
         card.innerHTML = `
           <div class="card-inner">
             <div class="card-face card-back"></div>
-            <div class="card-face card-front"><img src="${src}"></div>
+            <div class="card-face card-front"><img src="${src}" style="width:100%; height:100%; object-fit:cover;"></div>
           </div>
         `;
 
@@ -205,7 +188,10 @@
     function nextLevel() {
       document.getElementById('winOverlay').style.display = 'none';
       if (lv < 3) { lv++; initLevel(); } 
-      else { backToMenu(); }
+      else { 
+        document.getElementById('gameArea').style.display = 'none';
+        document.getElementById('mainMenu').style.display = 'flex';
+      }
     }
   </script>
 </body>
